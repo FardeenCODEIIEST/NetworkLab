@@ -9,7 +9,13 @@
 #include <netdb.h>      // For hostnet (knowing the IPv4 address)
 #include <pthread.h>    // For parallel thread creation
 
-pthread_t tid[2];
+volatile int state = 1; // 1 --> running, 0 --> stop
+
+struct ThreadArgs
+{
+    int sockfd;
+    char buffer[256];
+};
 
 void error(const char *err)
 {
@@ -17,34 +23,60 @@ void error(const char *err)
     exit(1);
 }
 
-void *writeToServer(char buffer[256], int sockfd)
+void *writeToServer(void *arg)
 {
-
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
-    int n = write(sockfd, buffer, strlen(buffer));
-    if (n < 0)
+    struct ThreadArgs *args = (struct ThreadArgs *)arg;
+    int sockfd = args->sockfd;
+    char *buffer = args->buffer;
+    while (state)
     {
-        error("Error on writing:\n");
+        bzero(buffer, 256);
+        fgets(buffer, 256, stdin);
+
+        int n = write(sockfd, buffer, strlen(buffer));
+        if (n < 0)
+        {
+            state = 0;
+            error("Error on writing\n");
+        }
+        int i = strncmp("Bye", buffer, 3);
+        if (i == 0)
+        {
+            state = 0;
+        }
+        if (!state)
+            break;
     }
+    printf("Connection closed\n");
+    exit(EXIT_SUCCESS);
     return NULL;
 }
 
-void *readFromServer(char buffer[256], int sockfd)
+void *readFromServer(void *arg)
 {
-    bzero(buffer, 256);
-    int n = read(sockfd, buffer, 256);
-    if (n < 0)
+    struct ThreadArgs *args = (struct ThreadArgs *)arg;
+    int sockfd = args->sockfd;
+    char *buffer = args->buffer;
+    while (state)
     {
-        error("Error on reading\n");
+        bzero(buffer, 256);
+        int n = read(sockfd, buffer, 255);
+        if (n < 0)
+        {
+            state = 0;
+            error("Error on reading \n");
+        }
+        printf("Server sent the text: %s\n", buffer);
+        int i = strncmp("Bye", buffer, 3);
+        if (i == 0)
+        {
+            state = 0;
+        }
+        if (!state)
+            break;
     }
-    printf("Server sent the text: %s\n", buffer);
-    int i = strncmp("Bye", buffer, 3);
-    if (i == 0)
-    {
-        printf("Connection closed with server\n");
-        close(sockfd);
-    }
+    printf("Connection closed\n");
+    exit(EXIT_SUCCESS);
     return NULL;
 }
 
@@ -94,22 +126,28 @@ int main(int argc, char *argv[])
     }
     printf("Connection with server established\nStart the chat session :)\n");
     /* Read and Write */
-
-    n = pthread_create(&(tid[0]), NULL, writeToServer(buffer, sockfd), NULL);
-    if (n != 0)
+    while (state)
     {
-        fprintf(stderr, "Read thread cannot be created sccessfully\n");
-        exit(1);
-    }
-    n = pthread_create(&(tid[1]), NULL, readFromServer(buffer, sockfd), NULL);
-    if (n != 0)
-    {
-        fprintf(stderr, "Write thread cannot be created sccessfully\n");
-        exit(1);
-    }
+        struct ThreadArgs args;
+        args.sockfd = sockfd;
 
-    // /* close()*/
-    // printf("Connection with server closed\n");
-    // close(sockfd);
+        pthread_t readThread, writeThread;
+
+        if (pthread_create(&readThread, NULL, readFromServer, (void *)&args) != 0)
+        {
+            perror("Failed to create read thread\n");
+            return 0;
+        }
+
+        if (pthread_create(&writeThread, NULL, writeToServer, (void *)&args) != 0)
+        {
+            perror("Failed to create write thread\n");
+            return 0;
+        }
+
+        pthread_join(readThread, NULL);
+        pthread_join(writeThread, NULL);
+    }
+    close(sockfd);
     return 0;
 }

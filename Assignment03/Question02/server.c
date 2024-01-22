@@ -8,7 +8,13 @@
 #include <sys/types.h>  // For definition of structs
 #include <pthread.h>    // For parallel thread creation
 
-pthread_t tid[2];
+volatile int state = 1; // 1 --> running, 0---> stop
+
+struct ThreadArgs
+{
+    int sockfd;
+    char buffer[256];
+};
 
 void error(const char *err)
 {
@@ -16,34 +22,64 @@ void error(const char *err)
     exit(1);
 }
 
-void *readingTextFromCLient(char buffer[256], int newSockfd)
+void *readingTextFromClient(void *arg)
 {
-    bzero(buffer, 256); // clear the buffer
-    int n = read(newSockfd, buffer, 256);
-    if (n < 0)
+    struct ThreadArgs *args = (struct ThreadArgs *)arg;
+    int sockfd = args->sockfd;
+    char *buffer = args->buffer;
+
+    while (state)
     {
-        error("Error on reading\n");
+        bzero(buffer, 256);
+        int n = read(sockfd, buffer, 255);
+        if (n < 0)
+        {
+            state = 0;
+            error("Error on reading \n");
+        }
+        printf("Client sent the text: %s\n", buffer);
+        int i = strncmp("Bye", buffer, 3);
+        if (i == 0)
+        {
+            state = 0;
+        }
+        if (!state)
+        {
+            break;
+        }
     }
-    printf("Client sent the text: %s\n", buffer);
+    printf("Closing the connection ....\n");
+    exit(EXIT_SUCCESS);
     return NULL;
 }
 
-void *writingTextToClient(char buffer[256], int newSockfd, int sockfd)
+void *writingTextToClient(void *arg)
 {
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin); // taking input from stdin stream and feed into buffer
-    int n = write(newSockfd, buffer, strlen(buffer));
-    if (n < 0)
+    struct ThreadArgs *args = (struct ThreadArgs *)arg;
+    int sockfd = args->sockfd;
+    char *buffer = args->buffer;
+
+    while (state)
     {
-        error("Error on writing\n");
+        bzero(buffer, 256);
+        fgets(buffer, 256, stdin);
+
+        int n = write(sockfd, buffer, strlen(buffer));
+        if (n < 0)
+        {
+            state = 0;
+            error("Error on writing\n");
+        }
+        int i = strncmp("Bye", buffer, 3);
+        if (i == 0)
+        {
+            state = 0;
+        }
+        if (!state)
+            break;
     }
-    int i = strncmp("Bye", buffer, 3); // comparing 3 characters
-    if (i == 0)
-    {
-        printf("Closing the connection ....\n");
-        close(newSockfd);
-        close(sockfd);
-    }
+    printf("Closing the connection ....\n");
+    exit(EXIT_SUCCESS);
     return NULL;
 }
 
@@ -99,25 +135,29 @@ int main(int argc, char *argv[])
     }
 
     /* Read and Write*/
-    printf("This is the server running on port: %d\n", portNo);
-    n = pthread_create(&(tid[0]), NULL, readingTextFromCLient(buffer, newSockfd), NULL);
-    if (n != 0)
+    while (state)
     {
-        fprintf(stderr, "Read thread cannot be created sccessfully\n");
-        exit(1);
+        struct ThreadArgs args;
+        args.sockfd = newSockfd;
+        pthread_t readThread, writeThread; // read , write threads
+        if (pthread_create(&readThread, NULL, readingTextFromClient, (void *)&args) != 0)
+        {
+            perror("Failed to create read thread:\n");
+            return 0;
+        }
+        if (pthread_create(&writeThread, NULL, writingTextToClient, (void *)&args) != 0)
+        {
+            perror("Failed to create write thread:\n");
+            return 0;
+        }
+        pthread_join(readThread, NULL);
+        pthread_join(writeThread, NULL);
+        if (!state)
+        {
+            break;
+        }
     }
-    n = pthread_create(&(tid[1]), NULL, writingTextToClient(buffer, newSockfd, sockfd), NULL);
-    if (n != 0)
-    {
-        fprintf(stderr, "Write thread cannot be created sccessfully\n");
-        exit(1);
-    }
-    // printf("Closing the connection ....\n");
-
-    /* close() */
-    // end:
-    //     close(newSockfd);
-    //     close(sockfd);
-    //     return 0;
+    close(newSockfd);
+    close(sockfd);
     return 0;
 }
