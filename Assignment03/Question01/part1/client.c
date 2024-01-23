@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     {
         error("Error on opening socket\n");
     }
-
+    printf("Socket is created\n");
     /* connect() */
     server = gethostbyname(argv[1]);
     if (server == NULL)
@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
     {
         error("Error on connecion\n");
     }
+    printf("COnnecting to %s:%s\n",argv[1],argv[2]);
+    printf("Connection has been established\n");
     /* Read and Write*/
     char message[13] = "Hello World!!";
     bcopy(message, buffer, sizeof(message));

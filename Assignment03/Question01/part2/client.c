@@ -65,6 +65,11 @@ int main(int argc, char *argv[])
         bzero(buffer, 256);
         fgets(buffer, 256, stdin);
         n = write(sockfd, buffer, sizeof(buffer));
+	int k = strncmp("Bye", buffer, 3);
+        if (k == 0)
+        {
+            break;
+        }
         if (n < 0)
         {
             error("Error on writing:\n");

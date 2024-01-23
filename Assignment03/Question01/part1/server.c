@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     {
         error("Error on opening socket\n");
     }
-
+    printf("Socket has been established\n");
     /* bind() */
     bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
     serv_addr.sin_family = AF_INET;
@@ -52,10 +52,8 @@ int main(int argc, char *argv[])
     {
         error("Error on binding\n");
     }
-
     /* listen*/
     listen(sockfd, 5); // maximum number of clients=5
-
     /* accept() */
     clientlen = sizeof(cli_addr);
     newSockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clientlen);

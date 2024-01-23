@@ -73,9 +73,15 @@ int main(int argc, char *argv[])
         if (n < 0)
         {
             error("Error on reading\n");
-        }
+	}
         printf("Client sent the text: %s\n", buffer);
-        bzero(buffer, 256);
+        int k = strncmp("Bye", buffer, 3); // comparing 3 characters
+        if (k == 0)
+        {
+            break;
+        }
+
+	bzero(buffer, 256);
         fgets(buffer, 256, stdin); // taking input from stdin stream and feed into buffer
         n = write(newSockfd, buffer, strlen(buffer));
         if (n < 0)
