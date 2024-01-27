@@ -88,7 +88,10 @@ int main(int argc, char *argv[])
         }
     }
     /* close()*/
-    printf("Connection with server closed\n");
-    close(sockfd);
+    int err=close(sockfd);
+    if(err==-1){
+	error("Close is not successful\n");
+    }
+     printf("Connection with server closed\n");
     return 0;
 }

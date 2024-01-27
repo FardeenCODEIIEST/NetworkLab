@@ -6,6 +6,8 @@
 #include <netinet/in.h> // For struct sockaddr_in ,...
 #include <errno.h>      // For perror(),...
 #include <sys/types.h>  // For definition of structs
+#include <netdb.h>      // for getaddrinfo()
+#include <arpa/inet.h>	// for inet_addr()
 
 void error(const char *err)
 {
@@ -16,15 +18,15 @@ void error(const char *err)
 int main(int argc, char *argv[])
 {
     /*
-        Usage:- [executable_name] portNo
+        Usage:- [executable_name] server_ip portNo
     */
-    if (argc < 2)
+    if (argc < 3)
     {
-        fprintf(stderr, "Usage: %s port_no\n", argv[0]);
+        fprintf(stderr, "Usage: %s server_ip port_no\n", argv[0]);
         exit(1);
     }
     /*
-        Order:- socket(), bind(), listen(), accept(), read() <--> write(), close()
+        Order:- getaddrinfo(),socket(), bind(), listen(), accept(), read() <--> write(), close()
     */
     int portNo;                             // Storing the port number
     int sockfd;                             // File descriptor responsible for listening to new connections
@@ -35,26 +37,26 @@ int main(int argc, char *argv[])
     socklen_t clientlen;                    // 4 byte datatype
 
     /* socket() */
-    portNo = atoi(argv[1]);
+    portNo = atoi(argv[2]);
     // We will be TCP so SOCK_STREAM
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); // 0 --> TCP
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);	// TCP--->0
     if (sockfd < 0)
     {
         error("Error on opening socket\n");
     }
 
     /* bind() */
-    bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portNo);
-    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+     bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
+     serv_addr.sin_family = AF_INET;
+     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
+     serv_addr.sin_port = htons(portNo);
+    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
         error("Error on binding\n");
     }
 
     /* listen*/
-    listen(sockfd, 5); // maximum number of clients=5
+    listen(sockfd, 5); // maximum number of client connectios in the queue = 5
 
     /* accept() */
     clientlen = sizeof(cli_addr);
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
         if (n < 0)
         {
             error("Error on reading\n");
-	}
+        }
         printf("Client sent the text: %s\n", buffer);
         int k = strncmp("Bye", buffer, 3); // comparing 3 characters
         if (k == 0)
@@ -81,7 +83,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-	bzero(buffer, 256);
+        bzero(buffer, 256);
         fgets(buffer, 256, stdin); // taking input from stdin stream and feed into buffer
         n = write(newSockfd, buffer, strlen(buffer));
         if (n < 0)
@@ -97,7 +99,15 @@ int main(int argc, char *argv[])
     printf("Closing the connection ....\n");
 
     /* close() */
-    close(newSockfd);
-    close(sockfd);
+    int err = close(newSockfd);
+    if (err == -1)
+    {
+        error("Read, write socket not closed properly\n");
+    }
+    err = close(sockfd);
+    if (err == -1)
+    {
+        error("Connection socket not closed properly\n");
+    }
     return 0;
 }

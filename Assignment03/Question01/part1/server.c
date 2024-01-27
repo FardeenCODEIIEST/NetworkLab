@@ -6,6 +6,7 @@
 #include <netinet/in.h> // For struct sockaddr_in ,...
 #include <errno.h>      // For perror(),...
 #include <sys/types.h>  // For definition of structs
+#include <arpa/inet.h>  // for inet_addr()
 
 void error(const char *err)
 {
@@ -16,11 +17,11 @@ void error(const char *err)
 int main(int argc, char *argv[])
 {
     /*
-        Usage:- [executable_name] portNo
+        Usage:- [executable_name] client_ip portNo
     */
-    if (argc < 2)
+    if (argc < 3)
     {
-        fprintf(stderr, "Usage: %s port_no\n", argv[0]);
+        fprintf(stderr, "Usage: %s client_ip port_no\n", argv[0]);
         exit(1);
     }
     /*
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
     socklen_t clientlen;                    // 4 byte datatype
 
     /* socket() */
-    portNo = atoi(argv[1]);
+    portNo = atoi(argv[2]);
     // We will be TCP so SOCK_STREAM
     sockfd = socket(AF_INET, SOCK_STREAM, 0); // 0 --> TCP
     if (sockfd < 0)
@@ -44,16 +45,17 @@ int main(int argc, char *argv[])
     }
     printf("Socket has been established\n");
     /* bind() */
+    printf("IP is %s\n", argv[1]);
     bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
     serv_addr.sin_port = htons(portNo);
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         error("Error on binding\n");
     }
     /* listen*/
-    listen(sockfd, 5); // maximum number of clients=5
+    listen(sockfd, 5); // maximum number of clients in the queue = 5
     /* accept() */
     clientlen = sizeof(cli_addr);
     newSockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clientlen);
