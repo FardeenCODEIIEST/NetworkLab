@@ -8,7 +8,6 @@
 #include <sys/types.h>  // For definition of structs
 #include <netdb.h>      // For hostnet (knowing the IPv4 address)
 #include <pthread.h>    // For parallel thread creation
-#include <sys/select.h> // FOr select() ,...
 
 volatile int state = 1; // 1 --> running, 0 --> stop
 
@@ -22,6 +21,41 @@ void error(const char *err)
 {
     perror(err);
     exit(1);
+}
+
+/*
+    function used to write text to server
+    @params:- void*
+    @return:- void*
+*/
+void *writeToServer(void *arg)
+{
+    struct ThreadArgs *args = (struct ThreadArgs *)arg;
+    int sockfd = args->sockfd;
+    char *buffer = args->buffer;
+    while (state)
+    {
+        bzero(buffer, 256);
+        fgets(buffer, 256, stdin);
+
+        int n = write(sockfd, buffer, strlen(buffer));
+        printf("\n");
+        if (n < 0)
+        {
+            state = 0;
+            error("Error on writing\n");
+        }
+        int i = strncmp("Bye", buffer, 3);
+        if (i == 0)
+        {
+            state = 0;
+        }
+        if (!state)
+            break;
+    }
+    printf("Connection closed\n");
+    exit(EXIT_SUCCESS); // I know this is bad
+    return NULL;
 }
 
 /*
@@ -43,10 +77,7 @@ void *readFromServer(void *arg)
             state = 0;
             error("Error on reading \n");
         }
-        if (state)
-        {
-            printf("Server sent the text: %s\n", buffer);
-        }
+        printf("Server sent the text: %s\n", buffer);
         int i = strncmp("Bye", buffer, 3);
         if (i == 0)
         {
@@ -55,8 +86,8 @@ void *readFromServer(void *arg)
         if (!state)
             break;
     }
-    // printf("Connection closed\n");
-    // exit(EXIT_SUCCESS);
+    printf("Connection closed\n");
+    exit(EXIT_SUCCESS);
     return NULL;
 }
 
@@ -110,7 +141,7 @@ int main(int argc, char *argv[])
     struct ThreadArgs args;
     args.sockfd = sockfd;
 
-    pthread_t readThread; // thread for reading text from server
+    pthread_t readThread, writeThread;
 
     if (pthread_create(&readThread, NULL, readFromServer, (void *)&args) != 0)
     {
@@ -118,74 +149,14 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // while (state)
-    // {
-    //     bzero(buffer, 256);
-    //     fgets(buffer, 256, stdin);
-
-    //     int n = write(sockfd, buffer, strlen(buffer));
-    //     printf("\n");
-    //     if (n < 0)
-    //     {
-    //         state = 0;
-    //         error("Error on writing\n");
-    //     }
-    //     int i = strncmp("Bye", buffer, 3);
-    //     if (i == 0)
-    //     {
-    //         state = 0;
-    //     }
-    //     if (!state)
-    //         break;
-    // }--------------------------------------------------> This is blocking if we do not write exit(EXIT_SUCCESS) in the reception thread
-    while (state)
+    if (pthread_create(&writeThread, NULL, writeToServer, (void *)&args) != 0)
     {
-        fd_set set;
-        struct timeval timeout;
-
-        // Initialize the file descriptor set
-        FD_ZERO(&set);
-        FD_SET(STDIN_FILENO, &set);
-
-        // Setting timeout to zero, which makes select() non-blocking
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 0;
-
-        // Check if we can read from stdin without blocking
-        int rv = select(STDIN_FILENO + 1, &set, NULL, NULL, &timeout);
-        if (rv == -1)
-        {
-            perror("select"); // Error occurred in select()
-        }
-        else if (rv == 0)
-        {
-            // No data to read
-        }
-        else
-        {
-            // Data is available to read
-            bzero(buffer, 256);
-            if (fgets(buffer, 256, stdin) != NULL)
-            {
-                int n = write(sockfd, buffer, strlen(buffer));
-                printf("\n");
-                if (n < 0)
-                {
-                    state = 0;
-                    error("Error on writing\n");
-                }
-                int i = strncmp("Bye", buffer, 3);
-                if (i == 0)
-                {
-                    state = 0;
-                    break;
-                }
-            }
-        }
+        perror("Failed to create write thread\n");
+        return 0;
     }
 
-    // pthread_join(readThread, NULL);
-
+    pthread_join(readThread, NULL);
+    pthread_join(writeThread, NULL);
     /* close()*/
     if (state == 0)
     {

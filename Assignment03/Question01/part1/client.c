@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
     /* socket() */
     portNo = atoi(argv[2]);
-    // We will be TCP so SOCK_STREAM
+    // We will be using TCP so SOCK_STREAM
     sockfd = socket(AF_INET, SOCK_STREAM, 0); // 0 --> TCP
     if (sockfd < 0)
     {
@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr_list[0], (char *)&serv_addr.sin_addr.s_addr, server->h_length); // bcopy(char* src,char* dest,sizeof(src))
     serv_addr.sin_port = htons(portNo);
+    printf("Connecting to %s:%s\n", argv[1], argv[2]);
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         error("Error on connecion\n");
     }
-    printf("COnnecting to %s:%s\n",argv[1],argv[2]);
     printf("Connection has been established\n");
     /* Read and Write*/
     char message[13] = "Hello World!!";
@@ -77,6 +77,11 @@ int main(int argc, char *argv[])
     printf("Message from server:  %s\n", buffer);
 
     /* close()*/
-    close(sockfd);
+    int err = close(sockfd);
+    if (err == -1)
+    {
+        error("Close is not successful\n");
+    }
+    printf("Connection with server closed\n");
     return 0;
 }

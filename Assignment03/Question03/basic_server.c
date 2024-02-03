@@ -140,7 +140,11 @@ int main(int argc, char *argv[])
             clients[client_count]
                 .sock = client_sock;
             clients[client_count].partner_index = (client_count % 2 == 0) ? client_count + 1 : client_count - 1;
-            client_count++;
+            char firstMessage[BUFFER_SIZE];
+	    sprintf(firstMessage,"You are client number %d. You can talk only to client number %d. Say 'Bye' to end the conversation\n",client_count+1,clients[client_count].partner_index+1);
+	    send(clients[client_count].sock,firstMessage,BUFFER_SIZE,0);
+	    client_count++;
+
         }
 
         // Create a thread for every client.

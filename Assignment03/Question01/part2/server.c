@@ -7,7 +7,7 @@
 #include <errno.h>      // For perror(),...
 #include <sys/types.h>  // For definition of structs
 #include <netdb.h>      // for getaddrinfo()
-#include <arpa/inet.h>	// for inet_addr()
+#include <arpa/inet.h>  // for inet_addr()
 
 void error(const char *err)
 {
@@ -35,28 +35,31 @@ int main(int argc, char *argv[])
     char buffer[256];                       // For storing data bytes
     struct sockaddr_in serv_addr, cli_addr; // server and client internet address structures
     socklen_t clientlen;                    // 4 byte datatype
+    char clientIP[15];                      // Storing the client IP
 
     /* socket() */
     portNo = atoi(argv[2]);
     // We will be TCP so SOCK_STREAM
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);	// TCP--->0
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); // TCP--->0
     if (sockfd < 0)
     {
         error("Error on opening socket\n");
     }
-
+    printf("Socket has been established\n");
     /* bind() */
-     bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
-     serv_addr.sin_family = AF_INET;
-     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
-     serv_addr.sin_port = htons(portNo);
-    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
+    printf("IP is %s\n", argv[1]);
+    bzero((char *)&serv_addr, sizeof(serv_addr)); // clears the serv_addr stream with '\0'
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
+    serv_addr.sin_port = htons(portNo);
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         error("Error on binding\n");
     }
 
     /* listen*/
     listen(sockfd, 5); // maximum number of client connectios in the queue = 5
+    printf("This is the server running on port: %d\n", portNo);
 
     /* accept() */
     clientlen = sizeof(cli_addr);
@@ -66,8 +69,10 @@ int main(int argc, char *argv[])
         error("Error on accept\n");
     }
 
+    /* Who is trying to connect to me?*/
+    printf("The server is connected to client %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+
     /* Read and Write*/
-    printf("This is the server running on port: %d\n", portNo);
     while (1)
     {
         bzero(buffer, 256); // clear the buffer
@@ -86,6 +91,7 @@ int main(int argc, char *argv[])
         bzero(buffer, 256);
         fgets(buffer, 256, stdin); // taking input from stdin stream and feed into buffer
         n = write(newSockfd, buffer, strlen(buffer));
+        printf("\n");
         if (n < 0)
         {
             error("Error on writing\n");

@@ -258,7 +258,7 @@ void *handle_client(void *arg)
             if (recipient_index != -1)
             {
                 snprintf(buffer, sizeof(buffer), "\nFrom %s: %s", client->username, message);
-                send(clients[recipient_index].client_socket, buffer, strlen(buffer), 0);
+                //send(clients[recipient_index].client_socket, buffer, strlen(buffer), 0);
                 save_message(client->username, recipient, message, 0);
                 deliver_messages(recipient);
             }

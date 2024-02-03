@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr_list[0], (char *)&serv_addr.sin_addr.s_addr, server->h_length); // bcopy(char* src,char* dest,sizeof(src))
     serv_addr.sin_port = htons(portNo);
+    printf("Connecting to %s:%s\n", argv[1], argv[2]);
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         error("Error on connecion\n");
@@ -65,7 +66,8 @@ int main(int argc, char *argv[])
         bzero(buffer, 256);
         fgets(buffer, 256, stdin);
         n = write(sockfd, buffer, sizeof(buffer));
-	int k = strncmp("Bye", buffer, 3);
+        printf("\n");
+        int k = strncmp("Bye", buffer, 3);
         if (k == 0)
         {
             break;
@@ -88,10 +90,11 @@ int main(int argc, char *argv[])
         }
     }
     /* close()*/
-    int err=close(sockfd);
-    if(err==-1){
-	error("Close is not successful\n");
+    int err = close(sockfd);
+    if (err == -1)
+    {
+        error("Close is not successful\n");
     }
-     printf("Connection with server closed\n");
+    printf("Connection with server closed\n");
     return 0;
 }

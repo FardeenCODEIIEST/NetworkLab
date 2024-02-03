@@ -130,7 +130,10 @@ int main(int argc, char *argv[])
                 {
                     clients[i].sock = client_sock;
                     clients[i].partner_index = (client_count % 2 == 0) ? client_count + 1 : client_count - 1;
-                    client_count++;
+                    char firstMessage[BUFFER_SIZE];
+		    sprintf(firstMessage,"You are client number %d. You can talk only to client number %d. Say 'Bye' to end the conversation\n",i+1,clients[i].partner_index+1);
+		    send(clients[i].sock,firstMessage,BUFFER_SIZE,0);
+		    client_count++;
                     break;
                 }
             }
@@ -153,7 +156,7 @@ int main(int argc, char *argv[])
                 {
                     // Echo the message back to client
                     buffer[read_size] = '\0';
-
+		
                     // Process message (e.g., check for "Bye")
                     if (strncmp(buffer, "Bye", 3) == 0)
                     {
@@ -166,7 +169,7 @@ int main(int argc, char *argv[])
                         close_client_connection(i);
                         continue;
                     }
-
+		    
                     // Forward the message to the partner
                     int partner_index = clients[i].partner_index;
                     if (partner_index != -1 && clients[partner_index].sock != -1)
