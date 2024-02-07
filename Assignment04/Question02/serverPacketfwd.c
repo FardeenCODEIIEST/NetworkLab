@@ -7,6 +7,8 @@
 
 #define MAX_BUFFER_SIZE 1024
 
+char packet_dropped[16] = "MALFORMED PACKET";
+
 typedef struct
 {
     uint8_t TTL;             // 1 byte TTL field denoting Time To Live
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
 
         // Sanity check: Received size - 7 == payloadLength  ---> introduces a delay
         // printf("Received Size:- %d, PayloadLength in packet is:- %d\n", n, packet.payloadLength);
-        if (packet.payloadLength == n - 7)
+        if (packet.payloadLength == n - 7) // tweak this to check for dropped packets
         {
             if (packet.TTL > 0)
             {
@@ -136,6 +138,13 @@ int main(int argc, char *argv[])
         else
         {
             printf("Packet sanity check failed.\n");
+            memcpy(packet.payloadBytes, packet_dropped, 16);
+            packet.payloadBytes[16] = '\0';
+            serialize_packet(&packet, buffer);
+
+            // sendto() packet drop message to the client
+            sendto(sockfd, buffer, 7 + packet.payloadLength, 0, (struct sockaddr *)&clientAddr, clilen);
+
             // Skip this packet
             continue;
         }

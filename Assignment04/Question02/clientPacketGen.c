@@ -163,6 +163,12 @@ int main(int argc, char *argv[])
                 {
                     // Packet is correctly echoed back
                     deserialize_packet(buffer, &packet);
+                    if (packet.TTL == atoi(argv[4]))
+                    {
+                        // packet is not good
+                        printf("%s\n", packet.payloadBytes);
+                        exit(0);
+                    }
                 }
                 else
                 {
