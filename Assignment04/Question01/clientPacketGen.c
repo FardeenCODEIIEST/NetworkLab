@@ -6,9 +6,9 @@
 #include <unistd.h>     // for close(),..
 #include <sys/time.h>   // For gettimeofday()
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 1007
 
-char const_buffer[1024];
+char const_buffer[1007];
 
 // Assuming the Packet structure and serialization/deserialization functions are defined here
 typedef struct
@@ -94,6 +94,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <NumPackets>", argv[0]);
         exit(EXIT_SUCCESS);
     }
+    // Check Command-line arguments
+    if(atoi(argv[3])<100||atoi(argv[3])>1000||atoi(argv[4])<2||atoi(argv[4])>20||atoi(argv[4])%2!=0||atoi(argv[5])<1||atoi(argv[5])>50){
+    	fprintf(stderr,"Invalid inputs, 2<=TTL<=20 and TTL is even and 100<=P<=1000 and 1<=numPackets<=50, How dare you change the assignment statement\n");
+	exit(EXIT_FAILURE);
+    }
     // Set the buffer
     for (int i = 0; i < MAX_BUFFER_SIZE; i++)
     {
@@ -150,11 +155,20 @@ int main(int argc, char *argv[])
         {
             // Packet is correctly echoed back
             deserialize_packet(buffer, &packet);
-            // printf("Payload received : %s\n", packet.payloadBytes);
-            // RTT
-            long rtt = calculateRTT(start, end);
-            averageRTT += rtt;
-            printf("For packet with sequenceNumber:%d , RTT: %ld microseconds\n", packet.sequenceNumber, rtt);
+            if (packet.TTL != atoi(argv[4]))
+            {
+                // packet is good
+                // printf("Payload received : %s\n", packet.payloadBytes);
+                // RTT
+                long rtt = calculateRTT(start, end);
+                averageRTT += rtt;
+                printf("For packet with sequenceNumber:%d , RTT: %ld microseconds\n", packet.sequenceNumber, rtt);
+            }
+            else
+            {
+                // packet is not good
+                printf("%s\n", packet.payloadBytes);
+            }
         }
         else
         {
@@ -168,3 +182,4 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
+
