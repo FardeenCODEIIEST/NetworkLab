@@ -5,9 +5,9 @@
 #include <arpa/inet.h>  // for inet_addr(),htons,...
 #include <unistd.h>     // for close(),..
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 1007
 
-char packet_dropped[16] = "MALFORMED PACKET";
+char packet_dropped_Length[33] = "MALFORMED PACKET - Invalid Length";
 
 typedef struct
 {
@@ -138,8 +138,9 @@ int main(int argc, char *argv[])
         else
         {
             printf("Packet sanity check failed.\n");
-            memcpy(packet.payloadBytes, packet_dropped, 16);
-            packet.payloadBytes[16] = '\0';
+
+            memcpy(packet.payloadBytes, packet_dropped_Length, 33);
+            packet.payloadBytes[33] = '\0';
             serialize_packet(&packet, buffer);
 
             // sendto() packet drop message to the client

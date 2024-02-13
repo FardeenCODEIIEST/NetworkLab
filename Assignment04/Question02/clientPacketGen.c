@@ -6,9 +6,9 @@
 #include <unistd.h>     // for close(),..
 #include <sys/time.h>   // For gettimeofday()
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 1007
 
-char const_buffer[1024];
+char const_buffer[MAX_BUFFER_SIZE];
 
 // Assuming the Packet structure and serialization/deserialization functions are defined here
 typedef struct
@@ -94,6 +94,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <FilePath>", argv[0]);
         exit(EXIT_SUCCESS);
     }
+
+    // Check Command-line arguments
+    if (atoi(argv[3]) < 100 || atoi(argv[3]) > 1000 || atoi(argv[4]) < 2 || atoi(argv[4]) > 20 || atoi(argv[4]) % 2 != 0)
+    {
+        fprintf(stderr, "Invalid inputs, 2<=TTL<=20 and TTL is even and 100<=P<=1000 and 1<=numPackets<=50, How dare you change the assignment statement\n");
+        exit(EXIT_FAILURE);
+    }
+
     // Setting up the file pointer
     FILE *fp = fopen(argv[5], "w");
     if (fp == NULL)
@@ -130,11 +138,10 @@ int main(int argc, char *argv[])
         averageRTT = 0;
         for (int i = 0; i < numPackets; i++)
         {
-            // Prepare the packet (packet fields should be properly initialized)
+            // Make the packet
             packet.TTL = atoi(argv[4]);
             packet.sequenceNumber = i;
             packet.payloadLength = payLen;
-            // padding the packet with -1
             packet.payloadBytes = (char *)malloc(payLen * sizeof(char));
             memcpy(packet.payloadBytes, const_buffer, packet.payloadLength);
 
@@ -155,6 +162,7 @@ int main(int argc, char *argv[])
                     perror("sendto() failed\n");
                     exit(EXIT_FAILURE);
                 }
+
                 addr_size = sizeof(serverAddr);
                 // receive the packet from the server
                 int n = recvfrom(sockfd, buffer, MAX_BUFFER_SIZE, 0, (struct sockaddr *)&serverAddr, &addr_size);
@@ -163,11 +171,11 @@ int main(int argc, char *argv[])
                 {
                     // Packet is correctly echoed back
                     deserialize_packet(buffer, &packet);
-                    if (packet.TTL == atoi(argv[4]))
+                    if (packet.TTL == atoi(argv[4])) // no TTL decrement
                     {
                         // packet is not good
                         printf("%s\n", packet.payloadBytes);
-                        exit(0);
+                        break;
                     }
                 }
                 else

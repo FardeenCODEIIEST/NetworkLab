@@ -8,7 +8,7 @@
 
 #define MAX_BUFFER_SIZE 1007
 
-char const_buffer[1007];
+char const_buffer[MAX_BUFFER_SIZE];
 
 // Assuming the Packet structure and serialization/deserialization functions are defined here
 typedef struct
@@ -95,9 +95,10 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
     // Check Command-line arguments
-    if(atoi(argv[3])<100||atoi(argv[3])>1000||atoi(argv[4])<2||atoi(argv[4])>20||atoi(argv[4])%2!=0||atoi(argv[5])<1||atoi(argv[5])>50){
-    	fprintf(stderr,"Invalid inputs, 2<=TTL<=20 and TTL is even and 100<=P<=1000 and 1<=numPackets<=50, How dare you change the assignment statement\n");
-	exit(EXIT_FAILURE);
+    if (atoi(argv[3]) < 100 || atoi(argv[3]) > 1000 || atoi(argv[4]) < 2 || atoi(argv[4]) > 20 || atoi(argv[4]) % 2 != 0 || atoi(argv[5]) < 1 || atoi(argv[5]) > 50)
+    {
+        fprintf(stderr, "Invalid inputs, 2<=TTL<=20 and TTL is even and 100<=P<=1000 and 1<=numPackets<=50, How dare you change the assignment statement\n");
+        exit(EXIT_FAILURE);
     }
     // Set the buffer
     for (int i = 0; i < MAX_BUFFER_SIZE; i++)
@@ -123,11 +124,10 @@ int main(int argc, char *argv[])
     int numPackets = atoi(argv[5]);
     for (int i = 0; i < numPackets; i++)
     {
-        // Prepare the packet (packet fields should be properly initialized)
+        // Make the packet
         packet.TTL = atoi(argv[4]);
         packet.sequenceNumber = i;
         packet.payloadLength = atoi(argv[3]);
-        // padding the packet with -1
         packet.payloadBytes = (char *)malloc(atoi(argv[3]) * sizeof(char));
         memcpy(packet.payloadBytes, const_buffer, packet.payloadLength);
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
             if (packet.TTL != atoi(argv[4]))
             {
                 // packet is good
-                // printf("Payload received : %s\n", packet.payloadBytes);
+                printf("Payload received : %s\n", packet.payloadBytes);
                 // RTT
                 long rtt = calculateRTT(start, end);
                 averageRTT += rtt;
@@ -182,4 +182,3 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
-
