@@ -8,6 +8,7 @@
 #define MAX_BUFFER_SIZE 1007
 
 char packet_dropped_Length[33] = "MALFORMED PACKET - Invalid Length";
+char packet_invalid_TTL[30]    = "MALFORMED PACKET - Invalid TTL";
 
 typedef struct
 {
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
 
         // Sanity check: Received size - 7 == payloadLength  ---> introduces a delay
         // printf("Received Size:- %d, PayloadLength in packet is:- %d\n", n, packet.payloadLength);
-        if (packet.payloadLength == n - 7) // tweak this to check for dropped packets
+        if ((packet.payloadLength == n - 7)&&(packet.TTL%2==0)) // tweak this to check for dropped packets
         {
             if (packet.TTL > 0)
             {
@@ -135,9 +136,23 @@ int main(int argc, char *argv[])
                 sendto(sockfd, buffer, 7 + packet.payloadLength, 0, (struct sockaddr *)&clientAddr, clilen);
             }
         }
-        else
+        else if(packet.TTL%2!=0)
         {
             printf("Packet sanity check failed.\n");
+
+            memcpy(packet.payloadBytes, packet_invalid_TTL, 30);
+            packet.payloadBytes[30] = '\0';
+            serialize_packet(&packet, buffer);
+
+            // sendto() packet drop message to the client
+            sendto(sockfd, buffer, 7 + packet.payloadLength, 0, (struct sockaddr *)&clientAddr, clilen);
+
+            // Skip this packet
+            continue;
+        }
+	else{
+	  
+	    printf("Packet sanity check failed.\n");
 
             memcpy(packet.payloadBytes, packet_dropped_Length, 33);
             packet.payloadBytes[33] = '\0';
@@ -148,7 +163,8 @@ int main(int argc, char *argv[])
 
             // Skip this packet
             continue;
-        }
+
+	}
 
         free(packet.payloadBytes); // free dynamically allocated payloadBytes
     }

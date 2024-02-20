@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
         // Sanity check: Received size - 7 == payloadLength  ---> introduces a delay
         // printf("Received Size:- %d, PayloadLength in packet is:- %d\n", n, packet.payloadLength);
-        if (packet.payloadLength == n - 7) // tweak this to check for dropped packets
+        if ((packet.payloadLength == n - 7)&&(packet.TTL%2==0)) // tweak this to check for dropped packets
         {
             if (packet.TTL > 0)
             {

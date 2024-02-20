@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     int cummRTT;               // Cumulative RTT
     if (argc < 6)
     {
-        fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <FilePath>", argv[0]);
+        fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <FilePath>\n", argv[0]);
         exit(EXIT_SUCCESS);
     }
 
@@ -156,7 +156,10 @@ int main(int argc, char *argv[])
             // send the packet to the server until TTL is not zero
             while (packet.TTL != 0) // send the packets until and unless the TTL is 0
             {
-                int c = sendto(sockfd, buffer, 7 + packet.payloadLength, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+            	 // serialise the packet to be sent to the buffer
+                 serialize_packet(&packet, buffer);
+
+		int c = sendto(sockfd, buffer, 7 + packet.payloadLength, 0, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
                 if (c == -1)
                 {
                     perror("sendto() failed\n");
@@ -177,6 +180,9 @@ int main(int argc, char *argv[])
                         printf("%s\n", packet.payloadBytes);
                         break;
                     }
+		    else{
+		    	packet.TTL--; // decrement TTL at client as well
+		    }
                 }
                 else
                 {
