@@ -1,82 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
-void error(const char *errmsg)
-{
-    perror(errmsg);
-    exit(1);
-}
+#define SERVER_PORT 12345
+#define BUF_SIZE 1024
 
-int main(int argc, char *argv[])
-{
-    if (argc < 2)
-    {
-        fprintf(stderr, "Port number not provided, program terminated\n");
-        exit(1);
-    }
-    int sockfd, newsockfd, portno, n;
-    char buffer[255];
-    portno = atoi(argv[1]);
-    struct sockaddr_in serv_addr, cli_addr; // internet address
-    socklen_t clilen;                       // 32-bit datatype
+int main() {
+    int sockfd;
+    struct sockaddr_in servaddr, cliaddr;
+    char buffer[BUF_SIZE];
+    socklen_t len;
+    int n;
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); // TCP
-    if (sockfd < 0)
-    {
-        error("Error opening socket\n");
-        exit(1);
-    }
-    bzero((char *)&serv_addr, sizeof(serv_addr)); // erases data by writing '\0' to the stream of bytes referred by pointer
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
-
-    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-        error("Binding failer\n");
+    // Create a UDP Socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
     }
 
-    listen(sockfd, 5); // Max number of clients=5
-    clilen = sizeof(cli_addr);
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&cliaddr, 0, sizeof(cliaddr));
 
-    // Read, write
-    newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
-    if (newsockfd < 0)
-    {
-        error("Error on accept\n");
-        exit(1);
-    }
-    while (1)
-    {
-        bzero(buffer, 255); // clear the buffer
-        n = read(newsockfd, buffer, 255);
-        if (n < 0)
-        {
-            error("Error on reading\n");
-            exit(1);
-        }
-        printf("Client request: %s\n", buffer);
-        bzero(buffer, 255);        // clear the buffer
-        fgets(buffer, 255, stdin); // reads bytes from stream and feed into buffer
+    // Fill server information
+    servaddr.sin_family = AF_INET; // IPv4
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(SERVER_PORT);
 
-        n = write(newsockfd, buffer, strlen(buffer));
-        if (n < 0)
-        {
-            error("Error on writing\n");
-            exit(1);
-        }
-        int i = strncmp("Bye", buffer, 3);
-        if (i == 0)
-        {
-            break; // bye
-        }
+    // Bind the socket with the server address
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
     }
-    close(newsockfd);
-    close(sockfd);
+
+    printf("Server listening on port %d\n", SERVER_PORT);
+
+    len = sizeof(cliaddr);  //len is value/resuslt
+
+    while (1) {
+        n = recvfrom(sockfd, (char *)buffer, BUF_SIZE,MSG_WAITALL ,(struct sockaddr *) &cliaddr, &len);
+        buffer[n] = '\0';
+        printf("Received: %s\n", buffer);
+
+        // Send ACK back to the client
+        sendto(sockfd, "ACK", strlen("ACK"), MSG_CONFIRM,(const struct sockaddr *) &cliaddr, len);
+        printf("ACK sent.\n");
+    }
+
     return 0;
 }
+

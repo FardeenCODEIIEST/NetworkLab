@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
     if (argc < 6)
     {
-        fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <NumPackets>", argv[0]);
+        fprintf(stderr, "Usage: %s <ServerIP> <ServerPort> <P> <TTL> <NumPackets>\n", argv[0]);
         exit(EXIT_SUCCESS);
     }
     // Check Command-line arguments
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
             {
                 // packet is not good
                 printf("%s\n", packet.payloadBytes);
-            }
+	    }
         }
         else
         {

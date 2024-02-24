@@ -5,6 +5,7 @@
 #include <arpa/inet.h>  // for inet_addr(),htons,...
 #include <unistd.h>     // for close(),..
 #include <sys/time.h>   // For gettimeofday()
+#include <stdbool.h>	// For boolean type
 
 #define MAX_BUFFER_SIZE 1007
 
@@ -136,6 +137,7 @@ int main(int argc, char *argv[])
         int numPackets = 50;
         printf("<-------------------- Packet size is %d -----------------------------> \n", payLen);
         averageRTT = 0;
+	bool flag = true;
         for (int i = 0; i < numPackets; i++)
         {
             // Make the packet
@@ -178,9 +180,11 @@ int main(int argc, char *argv[])
                     {
                         // packet is not good
                         printf("%s\n", packet.payloadBytes);
-                        break;
+                    	flag = false;
+			break;
                     }
-		    else{
+		    else
+		    {
 		    	packet.TTL--; // decrement TTL at client as well
 		    }
                 }
@@ -190,6 +194,11 @@ int main(int argc, char *argv[])
                     exit(EXIT_FAILURE);
                 }
             }
+	    if(!flag)
+	    {
+		printf("Packet sanity check failed so skipping this set of payload\n");
+		break; 
+	    }
             gettimeofday(&end, NULL);
             cummRTT = calculateRTT(start, end);
             printf("For packet with sequence number %d, cumulative RTT is :%d microseconds\n", packet.sequenceNumber, cummRTT);
