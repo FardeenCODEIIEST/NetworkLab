@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "ip.h": "c",
+        "tcp.h": "c",
+        "if_packet.h": "c",
+        "ioctl.h": "c",
+        "ether.h": "c"
+    }
+}
